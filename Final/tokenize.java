@@ -105,7 +105,7 @@ public class tokenize {
     public static class TkReducer extends Reducer<Text, IntWritable, Text, Text> {
         private String prev = "";
         private List<String> postingsList = new LinkedList<String>();
-        private int total_sum = 0;// total number of one word
+        private int total_sum = 0;
         private Text OUT_KEY = new Text();
         private Text OUT_VALUE = new Text();
 
@@ -179,7 +179,7 @@ public class tokenize {
                 job.addFileToClassPath(f.getPath());
             }
 
-            FileStatus[] status = fs.listStatus(new Path(args[1] + "/train"));
+            FileStatus[] status = fs.listStatus(new Path(args[1] + "train"));
             for(FileStatus f: status) { 
                 if(f.isDir()) FileInputFormat.addInputPath(job, f.getPath());
             }
