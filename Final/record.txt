@@ -1,0 +1,1 @@
+javac tokenize.java -cp IK-Analyzer-2012FF/dist/IKAnalyzer2012_FF.jar:IK-Analyzer-2012FF/dist/IKAnalyzer2012FF_u1.jar:$(hadoop classpath)
