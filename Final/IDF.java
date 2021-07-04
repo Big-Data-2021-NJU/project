@@ -38,14 +38,16 @@ public class IDF {
         // output: word idf 
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String word = value.toString().split(" ", 2)[0];
-            word = word.substring(1, word.length() - 2);
-            out_key.set(word);
+            if(word.length() > 2 && word.substring(1, word.length() - 1).matches("[\u4E00-\u9FA5]+")) {// chinese
+            //if(word.length() > 2) { 
+                out_key.set(word);
 
-            String files = value.toString().split("\t")[1];
-            int nums = files.split(";").length;
-            float idf = (float)Math.log((float)filesnum / (float)(nums + 1));
-            out_value.set(idf);
-            context.write(out_key, out_value);
+                String files = value.toString().split("\t")[1];
+                int nums = files.split(";").length;
+                float idf = (float)Math.log((float)filesnum / (float)(nums + 1));
+                out_value.set(idf);
+                context.write(out_key, out_value);
+            }
         }
     }
 
@@ -67,9 +69,12 @@ public class IDF {
             FileSystem fs = FileSystem.get(conf);
             FileStatus[] status = fs.listStatus(new Path(args[0] + "train"));
             for(FileStatus f: status) { 
-                if(!f.isDir()) filesnum ++;
+                if(f.isDir()) {
+                    FileStatus[] son_status = fs.listStatus(f.getPath());
+                    filesnum += son_status.length;
+                    System.out.println(filesnum);
+                } 
             }
-            System.out.printf("FUCK! files nums is {%d}\n", filesnum);
             conf.setInt("filesnum", filesnum);
 
             Job job = new Job(conf, "IDF");
