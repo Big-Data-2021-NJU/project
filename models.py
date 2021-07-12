@@ -29,7 +29,7 @@ conf = SparkConf()
 if args.local:
     conf.setMaster("local").setAppName(args.model_name)
 else:
-    conf.setMaster("spark://192.168.cmds.cmds:7077").setAppName(args.output_path)
+    conf.setMaster("spark://192.168.1.1:7077").setAppName(args.output_path)
 
 sc = SparkContext.getOrCreate(conf=conf)
 sc.setLogLevel("WARN")
@@ -39,7 +39,7 @@ sc.setLogLevel("WARN")
 if args.local:
     spark = SparkSession.builder.master("local").appName(args.model_name).getOrCreate()
 else:
-    spark = SparkSession.builder.master("spark://192.168.cmds.cmds:7077").appName(args.output_path).getOrCreate()
+    spark = SparkSession.builder.master("spark://192.168.1.1:7077").appName(args.output_path).getOrCreate()
 
 train = spark.read.load(args.input_train)
 '''
@@ -63,7 +63,7 @@ if args.model_name == "LR":
     result = lrModel.transform(test)
 '''
 if args.model_name == "MLP":
-    input_size = train.head(cmds)[0].tf_idf_vector.size
+    input_size = train.head(1)[0].tf_idf_vector.size
     output_size = 14
     if args.local:
         layers = [input_size, output_size]

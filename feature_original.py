@@ -76,7 +76,7 @@ def load(directory, outdir, outdir2, train):
         '''
         for text_status in dir_status:
             file_path = text_status.getPath()
-            count += cmds
+            count += 1
             print(count)
             if temp_df is None:
                 temp_df = spark.read.text(str(file_path), wholetext=True)
@@ -174,7 +174,7 @@ conf = SparkConf()
 if args.local:
     conf.setMaster("local").setAppName("feature")
 else:
-    conf.setMaster("spark://192.168.cmds.cmds:7077").setAppName("feature")
+    conf.setMaster("spark://192.168.1.1:7077").setAppName("feature")
 
 # from hdfs import InsecureClient
 # client = InsecureClient('hdfs://master001:9000')
@@ -184,7 +184,7 @@ sc.setLogLevel("WARN")
 if args.local:
     spark = SparkSession.builder.master("local").appName("feature").getOrCreate()
 else:
-    spark = SparkSession.builder.master("spark://192.168.cmds.cmds:7077").appName("feature").getOrCreate()
+    spark = SparkSession.builder.master("spark://192.168.1.1:7077").appName("feature").getOrCreate()
 # df = sc.wholeTextFiles("3-news_classification_sample/sample/体育/*").toDF()
 
 if args.local:
@@ -224,7 +224,7 @@ f.close()
 df = load_data(train_dir)
 df = df.withColumn("test", F.lit(0))
 df_test = load_data(test_dir)
-df_test = df_test.withColumn("test", F.lit(cmds))
+df_test = df_test.withColumn("test", F.lit(1))
 df = df.union(df_test)
 '''
 
