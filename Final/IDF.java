@@ -38,15 +38,20 @@ public class IDF {
         // output: word idf 
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String word = value.toString().split(" ", 2)[0];
-            if(word.length() > 2 && word.substring(1, word.length() - 1).matches("[\u4E00-\u9FA5]+")) {// chinese
-            //if(word.length() > 2) { 
-                out_key.set(word);
-
-                String files = value.toString().split("\t")[1];
-                int nums = files.split(";").length;
-                float idf = (float)Math.log((float)filesnum / (float)(nums + 1));
-                out_value.set(idf);
-                context.write(out_key, out_value);
+            
+            String s_num = value.toString().split(",", 2)[0];
+            int word_num = Integer.parseInt(s_num.split(" ")[1]);
+            if(word_num > 10) {
+                // remove words whose length < 2
+                if(word.length() > 3 && word.substring(1, word.length() - 1).matches("[\u4E00-\u9FA5]+")) {// chinese
+                //if(word.length() > 3) { 
+                    String files = value.toString().split("\t")[1];
+                    int nums = files.split(";").length;
+                    out_key.set(word);
+                    float idf = (float)Math.log((float)filesnum / (float)(nums + 1));
+                    out_value.set(idf);
+                    context.write(out_key, out_value);
+                }
             }
         }
     }

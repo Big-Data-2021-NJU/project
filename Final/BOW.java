@@ -87,7 +87,8 @@ public class BOW {
                 String term = (String)terms.nextElement();
                 if(idf_table.containsKey(term)) {
                     int frq = ((Integer)ht.get(term)).intValue();
-                    float tf = (float)frq / (float)allnums;
+                    // float tf = (float)frq / (float)allnums;
+                    float tf = (float)frq;
                     String s = (String)idf_table.get(term);
                     int idx = Integer.parseInt(s.split(":")[0]) - 1;
                     float idf = Float.parseFloat(s.split(":")[1]);
