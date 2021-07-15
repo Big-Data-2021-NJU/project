@@ -13,15 +13,18 @@ from pyspark.ml.classification import DecisionTreeClassifier
 from pyspark.ml.feature import IndexToString, StringIndexer, VectorIndexer
 from pyspark.ml import Pipeline
 from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.classification import NaiveBayes
+from pyspark.sql.functions import shuffle
 
+ablation = False
 parser = argparse.ArgumentParser()
-parser.add_argument('model_name', type=str, help='model name: SVM or LR or MLP')
+parser.add_argument('model_name', type=str, help='model name: SVM or LR or NB')
 parser.add_argument('output_path', type=str, help='output file name')
 parser.add_argument('input_train', type=str, help='output file name')
 parser.add_argument('input_test', type=str, help='output file name')
 parser.add_argument('-local', type=bool, help='output file name', required=False)
 args = parser.parse_args()
-assert args.model_name in ["LR", "SVM", "MLP"]
+assert args.model_name in ["LR", "SVM", "NB"]
 assert args.input_train in ["train", "train_normed"]
 assert args.input_test in ["test", "test_normed"]
 conf = SparkConf()
@@ -42,11 +45,18 @@ else:
     spark = SparkSession.builder.master("spark://192.168.1.1:7077").appName(args.output_path).getOrCreate()
 
 train = spark.read.load(args.input_train)
+from pyspark.sql.functions import rand
+
+if ablation:
+    train = train.orderBy(rand()).limit(2187)
+
 '''
 train_df = train.toPandas()
 train_df.to_csv('train.csv')
 '''
 test = spark.read.load(args.input_test)
+if ablation:
+    test = test.orderBy(rand()).limit(1312)
 if args.input_train == 'train':
     feature_name = 'tf_idf_vector'
 else:
@@ -61,6 +71,12 @@ if args.model_name == "LR":
     lr = LogisticRegression(featuresCol=feature_name, labelCol='label')
     lrModel = lr.fit(train)
     result = lrModel.transform(test)
+if args.model_name == 'NB':
+    nb = NaiveBayes(featuresCol=feature_name, labelCol='label')
+    # ovr = OneVsRest(classifier=nb, featuresCol=feature_name, labelCol='label')
+    model = nb.fit(train)
+    result = model.transform(test)
+
 '''
 if args.model_name == "MLP":
     input_size = train.head(1)[0].tf_idf_vector.size

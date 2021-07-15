@@ -1,5 +1,6 @@
 # coding: utf-8
 import datetime
+import numpy as np
 
 starttime = datetime.datetime.now()
 import os
@@ -94,64 +95,16 @@ def load(directory, outdir, outdir2, train):
         else:
             dataframe = dataframe.union(temp_df)
         print(i, '/', len(status), 'done!')
-
-    # 分词
-    df_cut_rdd = dataframe.rdd.map(cut)
-
-    '''
-    df_cut_rdd = df_cut_rdd.map(lambda x: x)
-    df_cut_rdd.count()
-    for element in df_cut_rdd.collect():
-        print(element)
-    '''
-
-    # print(df_cut_rdd.count())
-    df_cut = df_cut_rdd.toDF()
-
-    df_cut.write.save(outdir)
-    df_cut = spark.read.load(outdir)
-
-    # df_cut = df_cut.selectExpr("_1 as content", "_2 as label", "_3 as test")
-    df_cut = df_cut.selectExpr("_1 as content", "_2 as label")
-
-    from pyspark.ml.feature import StopWordsRemover
-
-    sw_removal = StopWordsRemover(inputCol='content', outputCol='cleaned', stopWords=stopwords_list)
-    new_df = sw_removal.transform(df_cut)
-    new_df = new_df.selectExpr("cleaned as cleaned", "label as label")
-    # construct dictionary
-
-    word_count = new_df.withColumn('word', F.explode(F.col('cleaned'))) \
-        .groupBy('word') \
-        .count()  # \
-    # .sort('count', ascending=False)
-
-    dic_df = word_count.filter("count > 10").select("word")
-    global dic
+    df = dataframe.toPandas()
+    x = [df['value'][i].replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '') for i in range(df.shape[0])]
+    df['value'] = x
+    df = df.sample(frac=1)
     if train:
-        dic_temp = [str(row.word) for row in dic_df.collect()]
-        for word in dic_temp:
-            if len(word) > 1 and chinese(word):
-                dic[word] = 0
-        # dic = [word for word in dic_temp if len(word) > 1 and chinese(word)]
-        # dic = pd.Series(dic).values
-        '''
-        for word in dic_temp:
-            if len(word) > 1 and chinese(word):
-                dic.append(word)
-        '''
-        print(len(dic))
-
-    # filter words
-
-    filter_words = F.udf(_filter_words, ArrayType(StringType()))
-    df_filtered = new_df.select([filter_words('cleaned').alias('cleaned'), 'label'])
-    df_filtered.write.save(outdir2)
-    df_filtered = spark.read.load(outdir2)
-    # df_filtered = df_filtered.selectExpr('_filter_words(cleaned) as cleaned', "label as label")
-    # df_filtered = new_df.rdd.map(filter_words)
-    # df_filtered = df_filtered.toDF()
-    return df_filtered
+        np.savetxt('train.txt', df[:int(0.9 * df.shape[0])].values, fmt='%s', delimiter='\t')
+        np.savetxt('dev.txt', df[int(0.9 * df.shape[0]):].values, fmt='%s', delimiter='\t')
+    else:
+        np.savetxt('test.txt', df.values, fmt='%s', delimiter='\t')
+    return df
 
     # new_df.select(['content', 'label', 'cleaned']).show(4, False)
 
@@ -244,14 +197,8 @@ else:
 
 train = load(train_dir, "train_dataset", "train_filtered", True)
 test = load(test_dir, "test_dataset", "test_filtered", False)
-tfidf(train, test)
+# tfidf(train, test)
 
-f = open("feature.txt", 'w')
-endtime = datetime.datetime.now()
-time_elapsed = (endtime - starttime).seconds
-print("Time elapsed: " + str(time_elapsed) + 's')
-f.write("Time elapsed: " + str(time_elapsed) + 's')
-f.close()
 # wrong. should load train and test separately.
 '''
 df = load_data(train_dir)

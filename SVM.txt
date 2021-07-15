@@ -1,2 +1,0 @@
-Accuracy: 0.9269594388533089
-Time elapsed: 951s
