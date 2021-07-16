@@ -95,6 +95,7 @@ def load(directory, outdir, outdir2, train):
             dataframe = dataframe.union(temp_df)
         print(i, '/', len(status), 'done!')
 
+    # 分词
     df_cut_rdd = dataframe.rdd.map(cut)
 
     '''
@@ -118,7 +119,39 @@ def load(directory, outdir, outdir2, train):
     sw_removal = StopWordsRemover(inputCol='content', outputCol='cleaned', stopWords=stopwords_list)
     new_df = sw_removal.transform(df_cut)
     new_df = new_df.selectExpr("cleaned as cleaned", "label as label")
-    return new_df
+    # construct dictionary
+
+    word_count = new_df.withColumn('word', F.explode(F.col('cleaned'))) \
+        .groupBy('word') \
+        .count()  # \
+    # .sort('count', ascending=False)
+
+    dic_df = word_count.filter("count > 10").select("word")
+    global dic
+    if train:
+        dic_temp = [str(row.word) for row in dic_df.collect()]
+        for word in dic_temp:
+            if len(word) > 1 and chinese(word):
+                dic[word] = 0
+        # dic = [word for word in dic_temp if len(word) > 1 and chinese(word)]
+        # dic = pd.Series(dic).values
+        '''
+        for word in dic_temp:
+            if len(word) > 1 and chinese(word):
+                dic.append(word)
+        '''
+        print(len(dic))
+
+    # filter words
+
+    filter_words = F.udf(_filter_words, ArrayType(StringType()))
+    df_filtered = new_df.select([filter_words('cleaned').alias('cleaned'), 'label'])
+    df_filtered.write.save(outdir2)
+    df_filtered = spark.read.load(outdir2)
+    # df_filtered = df_filtered.selectExpr('_filter_words(cleaned) as cleaned', "label as label")
+    # df_filtered = new_df.rdd.map(filter_words)
+    # df_filtered = df_filtered.toDF()
+    return df_filtered
 
     # new_df.select(['content', 'label', 'cleaned']).show(4, False)
 
@@ -200,8 +233,8 @@ Path = sc._gateway.jvm.org.apache.hadoop.fs.Path
 FileSystem = sc._gateway.jvm.org.apache.hadoop.fs.FileSystem
 Configuration = sc._gateway.jvm.org.apache.hadoop.conf.Configuration
 if args.local:
-    train_dir = '../3-news_classification/train'
-    test_dir = '../3-news_classification/test'
+    train_dir = '../../3-news_classification/train'
+    test_dir = '../../3-news_classification/test'
     # train_dir = '3-news_classification_sample/sample'
     # test_dir = '3-news_classification_sample/sample_test'
 else:
@@ -213,7 +246,7 @@ train = load(train_dir, "train_dataset", "train_filtered", True)
 test = load(test_dir, "test_dataset", "test_filtered", False)
 tfidf(train, test)
 
-f = open("feature_original.txt", 'w')
+f = open("feature.txt", 'w')
 endtime = datetime.datetime.now()
 time_elapsed = (endtime - starttime).seconds
 print("Time elapsed: " + str(time_elapsed) + 's')
